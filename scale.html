@@ -1,0 +1,25 @@
+<meta charset="utf-8" />
+<title>Виртуальные весы</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 400px; margin: 40px auto; padding: 0 20px; text-align: center; }
+  input { font-size: 32px; padding: 12px; width: 100%; box-sizing: border-box; text-align: center; margin-bottom: 20px; }
+  button { font-size: 22px; padding: 20px; width: 100%; }
+  .status { margin-top: 16px; color: #888; font-size: 14px; }
+</style>
+
+<h1>Весы (виртуальные)</h1>
+<input id="weightInput" type="number" step="1" value="340" />
+<div class="status">граммы</div>
+<button onclick="sendWeight()">Отправить вес на станцию</button>
+<div class="status" id="status"></div>
+
+<script>
+  const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
+  const ws = new WebSocket(`${wsProtocol}//${location.host}/ws`);
+  function sendWeight() {
+    const value = parseFloat(document.getElementById("weightInput").value);
+    ws.send(JSON.stringify({ type: "weight", value }));
+    document.getElementById("status").textContent = "Отправлено: " + value + " гр.";
+  }
+</script>

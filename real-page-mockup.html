@@ -1,0 +1,317 @@
+<meta charset="utf-8" />
+<title>Редактирование Заказ — макет uStore3</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", sans-serif; margin: 0; background: #f3f4f7; color: #1f2430; font-size: 13px; }
+
+  .layout { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar { width: 220px; background: #1b2340; color: #b8bfd6; flex-shrink: 0; padding: 16px 0; }
+  .sidebar .logo { color: #fff; font-weight: 700; font-size: 18px; padding: 0 20px 20px; }
+  .sidebar .section-label { font-size: 11px; text-transform: uppercase; color: #6b7399; padding: 16px 20px 6px; }
+  .sidebar a { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 20px; color: #b8bfd6; text-decoration: none; font-size: 13px; white-space: nowrap; overflow: hidden; }
+  .sidebar a span.label { overflow: hidden; text-overflow: ellipsis; }
+  .sidebar a.active { background: #2b3564; color: #fff; border-radius: 0 20px 20px 0; margin-right: 12px; }
+  .sidebar a .badge { flex-shrink: 0; background: #3d4a8a; color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 11px; }
+
+  /* Main */
+  .main { flex: 1; min-width: 0; }
+  .topbar { background: #fff; border-bottom: 1px solid #e4e6ee; padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar .crumb { color: #8b93ad; font-size: 13px; }
+  .topbar .actions { display: flex; align-items: center; gap: 10px; }
+  .btn { border: none; border-radius: 6px; padding: 8px 14px; font-size: 13px; cursor: default; }
+  .btn-outline { background: #fff; border: 1px solid #d7dae6; color: #444; }
+  .btn-primary { background: #3d5afe; color: #fff; }
+  .btn-secondary { background: #eef0f7; color: #444; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: #3d5afe; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+
+  .content { padding: 24px; }
+  h1 { font-size: 22px; margin: 0 0 20px; display: flex; align-items: center; justify-content: space-between; }
+  .card { background: #fff; border-radius: 10px; padding: 24px; border: 1px solid #eceef4; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; }
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-size: 12px; color: #8b93ad; margin-bottom: 6px; }
+  .field input, .field select, .field textarea { width: 100%; padding: 9px 10px; border: 1px solid #dde0ea; border-radius: 6px; font-size: 13px; color: #1f2430; background: #fff; }
+  .field textarea { resize: vertical; min-height: 60px; font-family: inherit; }
+
+  .section-title { font-weight: 600; font-size: 14px; margin: 8px 0 16px; color: #1f2430; }
+  .grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 24px; }
+
+  .form-actions { display: flex; gap: 10px; margin-top: 8px; }
+
+  .tabs { display: flex; gap: 24px; border-bottom: 1px solid #e4e6ee; margin: 28px 0 0; padding: 0 4px; }
+  .tabs span { padding: 10px 2px; font-size: 13px; color: #8b93ad; border-bottom: 2px solid transparent; }
+  .tabs span.active { color: #1f2430; border-bottom-color: #3d5afe; font-weight: 600; }
+
+  .products-header { display: flex; justify-content: space-between; align-items: center; margin: 20px 0 12px; }
+  .products-header h2 { font-size: 16px; margin: 0; }
+
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; border: 1px solid #eceef4; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; color: #8b93ad; padding: 10px 12px; background: #f8f9fc; border-bottom: 1px solid #eceef4; }
+  td { padding: 12px; font-size: 13px; border-bottom: 1px solid #f0f1f6; vertical-align: middle; }
+  .thumb { width: 44px; height: 44px; border-radius: 6px; background: #ffe600; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; }
+  .toggle-switch { position: relative; display: inline-block; width: 34px; height: 18px; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-switch .slider { position: absolute; inset: 0; background: #d7dae6; border-radius: 10px; cursor: pointer; transition: background .15s; }
+  .toggle-switch .slider::before { content: ""; position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform .15s; }
+  .toggle-switch input:checked + .slider { background: #3d5afe; }
+  .toggle-switch input:checked + .slider::before { transform: translateX(16px); }
+  .weight-input { width: 64px; padding: 6px 8px; border: 1px solid #dde0ea; border-radius: 6px; font-size: 13px; }
+  .muted { color: #8b93ad; }
+  .link { color: #3d5afe; }
+  .foot { display: flex; justify-content: space-between; align-items: center; padding: 12px; font-size: 12px; color: #8b93ad; }
+
+  .waiting-hint { font-size: 11px; color: #3d5afe; margin-top: 4px; }
+  .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); align-items: center; justify-content: center; }
+  .modal.show { display: flex; }
+  .modal-content { background: white; padding: 24px; border-radius: 8px; min-width: 280px; text-align: center; }
+  .printing { color: #8b93ad; }
+</style>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="logo">uStore3</div>
+    <a href="#">Инфопанель</a>
+    <a href="#" class="active">Заказы</a>
+    <a href="#">Товары В Заказах</a>
+    <a href="#">Подготовка К Декларации</a>
+    <a href="#">Платежи</a>
+    <a href="#">Клиенты</a>
+    <a href="#">Документы</a>
+    <a href="#">Номера Отслеживания</a>
+
+    <div class="section-label">Склад</div>
+    <a href="#">Операции</a>
+    <a href="#">Товары</a>
+    <a href="#">Отгрузки</a>
+    <a href="#">Категории</a>
+    <a href="#">Бренды</a>
+    <a href="#">Возвраты</a>
+
+    <div class="section-label">CRM</div>
+    <a href="#"><span class="label">Запросы На Обратный ...</span><span class="badge">320</span></a>
+
+    <div class="section-label">Отчеты</div>
+    <a href="#">Отчет По Брендам</a>
+    <a href="#">Дубликаты Товаров</a>
+    <a href="#">Отчет По Упаковщикам</a>
+    <a href="#">Отчет По Оплатам</a>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="crumb">Заказы &nbsp;›&nbsp; Редактирование</div>
+      <div class="actions">
+        <button class="btn btn-outline">+ Действия</button>
+        <button class="btn btn-secondary">Admin ▾</button>
+        <div class="avatar">K</div>
+      </div>
+    </div>
+
+    <div class="content">
+      <h1>
+        Редактирование Заказ
+        <span>
+          <button class="btn btn-primary" onclick="printDeclaration()">Декларация</button>
+          <button class="btn btn-outline" onclick="printBarcode()">🖶 Печать barcode</button>
+        </span>
+      </h1>
+
+      <div class="card">
+        <div class="grid2">
+          <div class="field"><label>Номер</label><input value="74240904-0767-1" readonly></div>
+          <div class="field"><label>Дата заказа</label><input value="05.08.2026 13:11:24" readonly></div>
+
+          <div class="field"><label>Статус</label><select id="orderStatus">
+            <option selected>Выбрать вариант</option>
+            <option>Аннулирован</option>
+            <option>Упакован</option>
+            <option>В пути</option>
+          </select></div>
+          <div class="field"><label>Трек номер отправления</label><input placeholder=""></div>
+
+          <div class="field"><label>Стоимость доставки</label><input value="0" readonly></div>
+          <div class="field"><label>Склад</label><select id="orderWarehouse">
+            <option>Выбрать вариант</option>
+            <option>Варшава</option>
+            <option>Берлин</option>
+            <option>Москва</option>
+            <option>Брест</option>
+          </select></div>
+        </div>
+
+        <div class="section-title">Вес и размер упаковки</div>
+        <div class="grid4">
+          <div class="field" style="grid-column: 1 / -1;">
+            <label>Вес заказа (гр.)</label>
+            <input id="orderWeight" placeholder="">
+            <div class="waiting-hint" id="weightHint">ждём вес с телефона (виртуальные весы)...</div>
+          </div>
+          <div class="field"><label>Ширина упаковки</label><input placeholder=""></div>
+          <div class="field"><label>Высота упаковки</label><input placeholder=""></div>
+          <div class="field"><label>Глубина упаковки</label><input placeholder=""></div>
+        </div>
+
+        <div class="grid2">
+          <div class="field"><label>Комментарий (редактирование недоступно)</label><textarea disabled></textarea></div>
+          <div class="field"><label>Внутренний комментарий</label><textarea></textarea></div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-primary">Сохранить</button>
+          <button class="btn btn-outline">Отмена</button>
+        </div>
+
+        <div class="tabs">
+          <span class="active">Товары</span>
+          <span>Клиент</span>
+          <span>Адрес доставки</span>
+          <span>Логи</span>
+          <span>Отслеживание доставки</span>
+          <span>💬 Чат</span>
+        </div>
+      </div>
+
+      <div class="products-header">
+        <h2>Товары</h2>
+        <div class="actions">
+          <button class="btn btn-primary">Добавить товар</button>
+          <button class="btn btn-outline" onclick="printBarcode()">🖶 Печать наклейки</button>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Изображение</th><th>Название</th><th>Название на английском</th><th>Артикул</th>
+            <th>Кол-во</th><th>Статус</th><th>Промокод</th><th>Внутренний комментарий</th>
+            <th>Точный вес</th><th>Комиссия магазина</th><th>Вес (гр.)</th><th>Адрес закупки</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="thumb">K18</div></td>
+            <td>K18 Восстанавливающий спрей для волос Molecular Pro Repair Mist 30 мл</td>
+            <td>K18 Hair Repair Spray Molecular Pro Repair Mist 30 ml</td>
+            <td>858511001470</td>
+            <td>1</td>
+            <td><select style="white-space: nowrap; padding: 6px 8px; border: 1px solid #dde0ea; border-radius: 6px; font-size: 13px;">
+              <option>На складе</option>
+              <option>В пути</option>
+            </select></td>
+            <td class="muted">—</td>
+            <td>IdeaineWlosy_pl</td>
+            <td>
+              <label class="toggle-switch">
+                <input type="checkbox" checked>
+                <span class="slider"></span>
+              </label>
+            </td>
+            <td>22 %</td>
+            <td><input class="weight-input" type="number" value="58"></td>
+            <td class="link">https://allegro.pl/produkt/ochr...</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="foot">
+        <div>Показано с 1 по 1 из 1</div>
+        <div>на страницу 10 ▾</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-content" id="modalContent"></div>
+</div>
+
+<script>
+  const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
+  const ws = new WebSocket(`${wsProtocol}//${location.host}/ws`);
+  ws.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    if (data.type === "weight") {
+      document.getElementById("orderWeight").value = data.value;
+      document.getElementById("orderWarehouse").value = "Варшава";
+      document.getElementById("orderStatus").value = "Упакован";
+      document.getElementById("weightHint").textContent = "получено с телефона: " + data.value + " гр. — склад и статус проставлены автоматически";
+    }
+  };
+
+  function showModal(html) {
+    document.getElementById("modalContent").innerHTML = html;
+    document.getElementById("modal").classList.add("show");
+  }
+  function closeModal() {
+    document.getElementById("modal").classList.remove("show");
+  }
+
+  function printBarcode() {
+    showModal('<div class="printing">Печать на Brother QL-1100c...</div>');
+    const code = "BY" + Date.now().toString().slice(-9);
+    setTimeout(() => {
+      showModal(`
+        <div>Наклейка распечатана</div>
+        <svg id="barcode"></svg>
+        <div><button class="btn btn-outline" onclick="closeModal()">Закрыть</button></div>
+      `);
+      JsBarcode("#barcode", code, { height: 50, fontSize: 14 });
+    }, 700);
+  }
+
+  function printDeclaration() {
+    const weight = document.getElementById("orderWeight").value || "—";
+    showModal('<div class="printing">Печать на Canon...</div>');
+    setTimeout(() => {
+      showModal(`
+        <div style="text-align:left; font-size:13px; line-height:1.7;">
+          <b>Декларация (макет)</b><br>
+          Номер заказа: 74240904-0767-1<br>
+          Дата: ${new Date().toLocaleDateString()}<br>
+          Вес заказа: ${weight} гр.
+        </div>
+        <div style="margin-top:12px;"><button class="btn btn-outline" onclick="closeModal()">Закрыть</button></div>
+      `);
+    }, 700);
+  }
+
+  function printBoth() {
+    showModal('<div class="printing">1/2 — Печать QR на Brother QL-1100c...</div>');
+    const code = "BY" + Date.now().toString().slice(-9);
+    setTimeout(() => {
+      showModal(`
+        <div>Наклейка с QR распечатана</div>
+        <svg id="barcodeBoth"></svg>
+      `);
+      JsBarcode("#barcodeBoth", code, { height: 50, fontSize: 14 });
+
+      setTimeout(() => {
+        showModal('<div class="printing">2/2 — Печать декларации на Canon...</div>');
+        const weight = document.getElementById("orderWeight").value || "—";
+        setTimeout(() => {
+          showModal(`
+            <div style="text-align:left; font-size:13px; line-height:1.7;">
+              <b>Декларация (макет)</b><br>
+              Номер заказа: 74240904-0767-1<br>
+              Дата: ${new Date().toLocaleDateString()}<br>
+              Вес заказа: ${weight} гр.
+            </div>
+            <div style="margin-top:12px;"><button class="btn btn-outline" onclick="closeModal()">Закрыть</button></div>
+          `);
+        }, 700);
+      }, 1200);
+    }, 700);
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key.toLowerCase() !== "p") return;
+    const activeTag = document.activeElement.tagName;
+    if (activeTag === "INPUT" || activeTag === "SELECT" || activeTag === "TEXTAREA") return;
+    e.preventDefault();
+    printBoth();
+  });
+</script>
