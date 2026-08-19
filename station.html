@@ -11,10 +11,19 @@
   .weight-display { font-size: 40px; font-weight: 600; }
   .weight-display.waiting { color: #aaa; font-weight: 400; font-size: 20px; }
   button { font-size: 16px; padding: 12px 16px; margin: 6px 6px 6px 0; cursor: pointer; }
-  .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); align-items: center; justify-content: center; }
-  .modal.show { display: flex; }
-  .modal-content { background: white; padding: 24px; border-radius: 8px; min-width: 280px; text-align: center; }
-  .printing { color: #888; }
+
+  #printArea { display: none; }
+  @media print {
+    body > *:not(#printArea) { display: none !important; }
+    #printArea { display: block !important; }
+    .print-section { display: none; }
+    body.printing-label #printLabel { display: block; }
+    body.printing-declaration #printDeclaration { display: block; }
+    /* размер под ленту Brother DK — поменяй width под фактический ролик, если он другой */
+    #printLabel { width: 62mm; padding: 4mm; text-align: center; }
+    #printLabel svg { width: 100%; height: auto; }
+    .decl-doc { width: 190mm; padding: 10mm; font-size: 12pt; line-height: 1.6; }
+  }
 </style>
 
 <h1>Упаковочная станция (макет)</h1>
@@ -43,8 +52,11 @@
   <button onclick="printDeclaration()">Печать декларации</button>
 </div>
 
-<div class="modal" id="modal">
-  <div class="modal-content" id="modalContent"></div>
+<div id="printArea">
+  <div id="printLabel" class="print-section">
+    <svg id="printBarcodeSvg"></svg>
+  </div>
+  <div id="printDeclaration" class="print-section"></div>
 </div>
 
 <script>
@@ -71,43 +83,105 @@
     document.getElementById("grossWeight").value = (netWeight + tare).toFixed(2) + " кг";
   }
 
-  function showModal(contentHtml) {
-    document.getElementById("modalContent").innerHTML = contentHtml;
-    document.getElementById("modal").classList.add("show");
-  }
-  function closeModal() {
-    document.getElementById("modal").classList.remove("show");
+  const BRIDGE_URL = "http://127.0.0.1:7777";
+
+  async function bridgePrint(target) {
+    try {
+      const res = await fetch(`${BRIDGE_URL}/print?target=${target}`, {
+        method: "POST",
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!res.ok) console.warn("print-bridge вернул ошибку:", await res.text());
+      return res.ok;
+    } catch (e) {
+      return false;
+    }
   }
 
-  function printBarcode() {
+  function printPdfFile(url) {
+    return new Promise((resolve) => {
+      const iframe = document.createElement("iframe");
+      iframe.style.display = "none";
+      iframe.onload = () => {
+        try {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+        } catch (e) {
+          console.warn("не удалось напечатать PDF в iframe", e);
+        }
+        setTimeout(() => {
+          iframe.remove();
+          resolve();
+        }, 1000);
+      };
+      iframe.src = url;
+      document.body.appendChild(iframe);
+    });
+  }
+
+  async function printRealPdf(target) {
+    const fileName = target === "declaration" ? "declaration.pdf" : "label.pdf";
+    const url = `/assets/${fileName}`;
+    try {
+      const head = await fetch(url, { method: "HEAD" });
+      if (!head.ok) return false;
+      await printPdfFile(url);
+      return true;
+    } catch (e) {
+      console.warn("не удалось проверить/напечатать PDF", e);
+      return false;
+    }
+  }
+
+  function printLabel(code) {
+    return new Promise(async (resolve) => {
+      if (await bridgePrint("label")) return resolve();
+      if (await printRealPdf("label")) return resolve();
+      const svg = document.getElementById("printBarcodeSvg");
+      svg.innerHTML = "";
+      JsBarcode(svg, code, { height: 60, fontSize: 14 });
+      document.body.classList.add("printing-label");
+      window.addEventListener("afterprint", function handler() {
+        document.body.classList.remove("printing-label");
+        window.removeEventListener("afterprint", handler);
+        resolve();
+      });
+      setTimeout(() => window.print(), 100);
+    });
+  }
+
+  function printDeclarationDoc(netW, gross) {
+    return new Promise(async (resolve) => {
+      if (await bridgePrint("declaration")) return resolve();
+      if (await printRealPdf("declaration")) return resolve();
+      document.getElementById("printDeclaration").innerHTML = `
+        <div class="decl-doc">
+          <h2>Декларация</h2>
+          <p>Дата: ${new Date().toLocaleDateString()}</p>
+          <p>Вес нетто: ${netW.toFixed(2)} кг</p>
+          <p>Вес брутто: ${gross}</p>
+          <p>Хрупкое: да</p>
+        </div>
+      `;
+      document.body.classList.add("printing-declaration");
+      window.addEventListener("afterprint", function handler() {
+        document.body.classList.remove("printing-declaration");
+        window.removeEventListener("afterprint", handler);
+        resolve();
+      });
+      setTimeout(() => window.print(), 100);
+    });
+  }
+
+  async function printBarcode() {
     if (netWeight === null) { alert("Сначала получи вес с телефона"); return; }
-    showModal('<div class="printing">Печать штрихкода...</div>');
     const code = "BY" + Date.now().toString().slice(-9);
-    setTimeout(() => {
-      showModal(`
-        <div>Штрихкод распечатан</div>
-        <svg id="barcode"></svg>
-        <div><button onclick="closeModal()">Закрыть</button></div>
-      `);
-      JsBarcode("#barcode", code, { height: 50, fontSize: 14 });
-    }, 700);
+    await printLabel(code);
   }
 
-  function printDeclaration() {
+  async function printDeclaration() {
     if (netWeight === null) { alert("Сначала получи вес с телефона"); return; }
     const gross = document.getElementById("grossWeight").value;
-    showModal('<div class="printing">Печать декларации...</div>');
-    setTimeout(() => {
-      showModal(`
-        <div style="text-align:left; font-size:14px; line-height:1.6;">
-          <b>Декларация (макет)</b><br>
-          Дата: ${new Date().toLocaleDateString()}<br>
-          Вес нетто: ${netWeight.toFixed(2)} кг<br>
-          Вес брутто: ${gross}<br>
-          Хрупкое: да
-        </div>
-        <div><button onclick="closeModal()">Закрыть</button></div>
-      `);
-    }, 700);
+    await printDeclarationDoc(netWeight, gross);
   }
 </script>
